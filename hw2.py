@@ -43,18 +43,26 @@ data_transforms = {
             # # transforms.RandomAdjustSharpness(sharpness_factor=10),
             # # transforms.RandomErasing(p=1.0, scale=(0.3,0.3), ratio=(0.5,0.5)),
 
+            # transforms.Resize((224,224) ),
+            # ########在此區塊填入圖像轉換方法########
+            # transforms.RandomHorizontalFlip(p=0.5),
+            # transforms.transforms.ColorJitter(saturation=0.2),
+            # # transforms.RandomVerticalFlip(p=0.5),
+            # ########################################
+            # transforms.ToTensor(),
+            # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+
+            transforms.RandomChoice([
+              transforms.RandomHorizontalFlip(p=0.5),
+              # transforms.RandomVerticalFlip(p=0.5),
+              transforms.RandomRotation(degrees=(0,30)),
+            ]),
+            # transforms.CenterCrop((480,480)),
             transforms.Resize((224,224) ),
-            ########在此區塊填入圖像轉換方法########
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.transforms.ColorJitter(saturation=0.2),
-            # transforms.RandomVerticalFlip(p=0.5),
-            ########################################
-            transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
 
             ########################################
-            # transforms.ToTensor(),
-            # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
         'val': transforms.Compose([
             transforms.Resize((224,224) ),
