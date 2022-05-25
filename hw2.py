@@ -57,8 +57,10 @@ data_transforms = {
               # transforms.RandomVerticalFlip(p=0.5),
               # transforms.RandomRotation(degrees=(0,30)),
             # ]),
+            # # transforms.CenterCrop((480,480)),
             # transforms.CenterCrop((480,480)),
-            transforms.CenterCrop((480,480)),
+            torchvision.transforms.RandomHorizontalFlip(p=0.5),
+            torchvision.transforms.RandomRotation(20),
             transforms.Resize((224,224) ),
 
             ########################################
