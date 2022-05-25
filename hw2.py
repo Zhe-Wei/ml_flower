@@ -46,7 +46,8 @@ data_transforms = {
             transforms.Resize((224,224) ),
             ########在此區塊填入圖像轉換方法########
             transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomVerticalFlip(p=0.5),
+            transforms.transforms.ColorJitter(saturation=0.2),
+            # transforms.RandomVerticalFlip(p=0.5),
             ########################################
             transforms.ToTensor(),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
