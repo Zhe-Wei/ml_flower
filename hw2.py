@@ -59,9 +59,16 @@ data_transforms = {
             # ]),
             # # transforms.CenterCrop((480,480)),
             # transforms.CenterCrop((480,480)),
-            torchvision.transforms.RandomHorizontalFlip(p=0.5),
-            torchvision.transforms.RandomRotation(20),
-            transforms.Resize((224,224) ),
+            # torchvision.transforms.RandomHorizontalFlip(p=0.5),
+            # torchvision.transforms.RandomRotation(20),
+            # transforms.Resize((224,224) ),
+
+            transforms.RandomChoice([
+              transforms.RandomHorizontalFlip(p=0.5),
+              transforms.RandomVerticalFlip(p=0.5),
+              transforms.RandomRotation(180),
+            ]),
+            transforms.CenterCrop((480,480)),
 
             ########################################
             transforms.ToTensor(),
