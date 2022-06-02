@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 
+import json
 import time
 import os
 import copy
@@ -257,6 +258,29 @@ def train_model(model, criterion, device, dataloaders, dataset_sizes, optimizer,
     time_elapsed // 60, time_elapsed % 60))
   print('Best val Acc: {:4f}'.format(best_acc))
 
+  print(valid_acc[0].item())
+
+  output_dict = {
+    "num_epochs": num_epochs,
+    "lr": lr,
+    "batch_size": batch_size,
+    "train_loss": (train_loss),
+    "train_acc": (train_acc[0].item()),
+    "valid_loss": (valid_loss),
+    "valid_acc": (valid_acc[0].item()),
+    "best_acc": (best_acc.item()),
+    "time_elapsed(min)": time_elapsed // 60,
+    "time_elapsed(s)": time_elapsed % 60,
+    # "optimizer": type(optimizer),
+    "model_name": model.__class__.__name__,
+    # "#parameters": parameter_count
+  }
+  print(output_dict)
+  json_object = json.dumps(output_dict, indent = 4)
+  filename = './' + model.__class__.__name__ + '_' + time.strftime("%Y%m%d-%H%M")+ '.json' 
+
+  with open(filename, "w") as outfile:
+    outfile.write(json_object)
   # load best model weights
   model.load_state_dict(best_model_wts)
   #torch.save(model.state_dict(),"model.pt")
@@ -268,110 +292,113 @@ def train_model(model, criterion, device, dataloaders, dataset_sizes, optimizer,
 * batch_size: 批次(batch)大小
 """
 
-num_epochs = 21
+num_epochs = 2
 lr = 0.001
-batch_size = 32
+batch_size = 6
 
 """## 主函式"""
 
 def main():
-  num_workers = 2
-  momentum = 0.9
+  global batch_size 
+  while batch_size < 11:
+    num_workers = 2
+    momentum = 0.9
 
-  # 資料集載入 =======================================================================
-  data_dir = '../training'
-  image_datasets = {
-    x: datasets.ImageFolder(
-      os.path.join(data_dir, x),
-      data_transforms[x]
-    ) 
-    for x in ['train', 'val']
-  }
-  dataloaders = {
-    x: torch.utils.data.DataLoader(
-      image_datasets[x], 
-      batch_size=batch_size,
-      shuffle=True, 
-      num_workers=num_workers
+    # 資料集載入 =======================================================================
+    data_dir = '../training'
+    image_datasets = {
+      x: datasets.ImageFolder(
+        os.path.join(data_dir, x),
+        data_transforms[x]
+      ) 
+      for x in ['train', 'val']
+    }
+    dataloaders = {
+      x: torch.utils.data.DataLoader(
+        image_datasets[x], 
+        batch_size=batch_size,
+        shuffle=True, 
+        num_workers=num_workers
+      )
+      for x in ['train', 'val']
+    }
+    dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
+    class_names = image_datasets['train'].classes
+    # 資料集載入 =======================================================================
+
+    # 設定 CUDA 環境 =======================================================================
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(f"Using device {device}\n")
+
+    # 設定 CUDA 環境 =======================================================================
+
+
+    # Get a batch of training data
+    inputs, classes = next(iter(dataloaders['train']))
+
+    # Make a grid from batch
+    out = torchvision.utils.make_grid(inputs)
+
+    imshow(out, title=[class_names[x] for x in classes])
+
+    
+    # model =======================================================================
+    # model_ft = MyCNN(num_classes=219)
+    model_ft = models.googlenet(pretrained=True)
+
+    print(model_ft)
+
+    num_ftrs = model_ft.fc.in_features
+    model_ft.fc = nn.Linear(num_ftrs, 219)
+
+    # num_ftrs = model_ft.classifier[2].in_features
+    # model_ft.classifier[3] = nn.Linear(num_ftrs,219)
+    
+    print(model_ft)
+    # pretrained_dict = load_state_dict_from_url(
+    #   'https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth',
+    #   progress=True
+    # )
+    # model_dict = model_ft.state_dict()
+    # # 1. filter out unnecessary keys
+    # pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+    # # 2. overwrite entries in the existing state dict
+    # model_dict.update(pretrained_dict) 
+    # # 3. load the new state dict
+    # model_ft.load_state_dict(model_dict)
+
+    # for k,v in model_dict.items():
+    #   print(k)
+
+    model_ft = model_ft.to(device)
+    # model =======================================================================
+
+    parameter_count = count_parameters(model_ft)
+    print(f"#parameters:{parameter_count}")
+    print(f"batch_size:{batch_size}")
+    batch_size = batch_size + 2
+
+
+    criterion = nn.CrossEntropyLoss()
+
+    # Observe that all parameters are being optimized
+    optimizer_ft = optim.SGD(model_ft.parameters(), lr=lr, momentum=momentum)
+
+    # Decay LR by a factor of 0.1 every 7 epochs
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+
+    model_ft = train_model(
+      model_ft, 
+      criterion, 
+      device, 
+      dataloaders, 
+      dataset_sizes, 
+      optimizer_ft, 
+      exp_lr_scheduler,     
+      num_epochs=num_epochs
     )
-    for x in ['train', 'val']
-  }
-  dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
-  class_names = image_datasets['train'].classes
-  # 資料集載入 =======================================================================
 
-  # 設定 CUDA 環境 =======================================================================
-  device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-  print(f"Using device {device}\n")
-
-  # 設定 CUDA 環境 =======================================================================
-
-
-  # Get a batch of training data
-  inputs, classes = next(iter(dataloaders['train']))
-
-  # Make a grid from batch
-  out = torchvision.utils.make_grid(inputs)
-
-  imshow(out, title=[class_names[x] for x in classes])
-
-  
-  # model =======================================================================
-  # model_ft = MyCNN(num_classes=219)
-  model_ft = models.googlenet(pretrained=True)
-
-  print(model_ft)
-
-  num_ftrs = model_ft.fc.in_features
-  model_ft.fc = nn.Linear(num_ftrs, 219)
-
-  # num_ftrs = model_ft.classifier[2].in_features
-  # model_ft.classifier[3] = nn.Linear(num_ftrs,219)
-  
-  print(model_ft)
-  # pretrained_dict = load_state_dict_from_url(
-  #   'https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth',
-  #   progress=True
-  # )
-  # model_dict = model_ft.state_dict()
-  # # 1. filter out unnecessary keys
-  # pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-  # # 2. overwrite entries in the existing state dict
-  # model_dict.update(pretrained_dict) 
-  # # 3. load the new state dict
-  # model_ft.load_state_dict(model_dict)
-
-  # for k,v in model_dict.items():
-  #   print(k)
-
-  model_ft = model_ft.to(device)
-  # model =======================================================================
-
-  parameter_count = count_parameters(model_ft)
-  print(f"#parameters:{parameter_count}")
-  print(f"batch_size:{batch_size}")
-
-
-  criterion = nn.CrossEntropyLoss()
-
-  # Observe that all parameters are being optimized
-  optimizer_ft = optim.SGD(model_ft.parameters(), lr=lr, momentum=momentum)
-
-  # Decay LR by a factor of 0.1 every 7 epochs
-  exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
-
-  model_ft = train_model(
-    model_ft, 
-    criterion, 
-    device, 
-    dataloaders, 
-    dataset_sizes, 
-    optimizer_ft, 
-    exp_lr_scheduler,     
-    num_epochs=num_epochs
-  )
-
-  visualize_model(model_ft, device, dataloaders, class_names)
+    visualize_model(model_ft, device, dataloaders, class_names)
 
 if __name__ == '__main__':
     main()
