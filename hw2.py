@@ -33,47 +33,11 @@ torchvision.transforms 提供了許多可靠的 API來讓使用者對圖像進�
 
 data_transforms = {
         'train': transforms.Compose([
-            # transforms.Resize((224,224) ),
-            # ########在此區塊填入圖像轉換方法########
-            # transforms.RandomHorizontalFlip(),
-            # transforms.RandomVerticalFlip(),
-            # # transforms.Pad(padding = (40, 40, 40, 40), padding_mode="symmetric"),
-            # transforms.RandomRotation((0,45)),
-            # # transforms.CenterCrop(size=(200,200)),
-            # # transforms.RandomAdjustSharpness(sharpness_factor=10),
-            # # transforms.RandomErasing(p=1.0, scale=(0.3,0.3), ratio=(0.5,0.5)),
-
-            # transforms.Resize((224,224) ),
-            # ########在此區塊填入圖像轉換方法########
-            # transforms.RandomHorizontalFlip(p=0.5),
-            # transforms.transforms.ColorJitter(saturation=0.2),
-            # # transforms.RandomVerticalFlip(p=0.5),
-            # ########################################
-            # transforms.ToTensor(),
-            # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-
-            # transforms.RandomChoice([
-              # transforms.RandomHorizontalFlip(p=0.5),
-              # transforms.RandomVerticalFlip(p=0.5),
-              # transforms.RandomRotation(degrees=(0,30)),
-            # ]),
-            # # transforms.CenterCrop((480,480)),
-            # transforms.CenterCrop((480,480)),
-            # torchvision.transforms.RandomHorizontalFlip(p=0.5),
-            # torchvision.transforms.RandomRotation(20),
-
-            # transforms.RandomChoice([
-            #   transforms.RandomHorizontalFlip(p=0.5),
-            #   transforms.RandomVerticalFlip(p=0.5),
-            #   transforms.RandomRotation(180),
-            # ]),
-            # transforms.CenterCrop((480,480)),
+            transforms.RandomChoice([
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomRotation(degrees=(0,30)),
+            ]),
             transforms.Resize((224,224) ),
-            transforms.RandomHorizontalFlip(),
-
-            # torchvision.transforms.RandomHorizontalFlip(p=0.5),
-            # torchvision.transforms.RandomVerticalFlip(p=0.5),
-            # torchvision.transforms.RandomRotation(40),
 
             ########################################
             transforms.ToTensor(),
@@ -353,30 +317,32 @@ def main():
 
   
   # model =======================================================================
-  model_ft = MyCNN(num_classes=219)
-  # model_ft = models.resnet34(pretrained=True)
-  # print(model_ft)
-  # num_ftrs = model_ft.fc.in_features
-  # num_ftrs = model_ft.classifier[2].in_features
+  # model_ft = MyCNN(num_classes=219)
+  model_ft = models.googlenet(pretrained=True)
 
-  # model_ft.fc = nn.Linear(num_ftrs,219)
+  print(model_ft)
+
+  num_ftrs = model_ft.fc.in_features
+  model_ft.fc = nn.Linear(num_ftrs, 219)
+
+  # num_ftrs = model_ft.classifier[2].in_features
   # model_ft.classifier[3] = nn.Linear(num_ftrs,219)
   
   print(model_ft)
-  pretrained_dict = load_state_dict_from_url(
-    'https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth',
-    progress=True
-  )
-  model_dict = model_ft.state_dict()
-  # 1. filter out unnecessary keys
-  pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-  # 2. overwrite entries in the existing state dict
-  model_dict.update(pretrained_dict) 
-  # 3. load the new state dict
-  model_ft.load_state_dict(model_dict)
+  # pretrained_dict = load_state_dict_from_url(
+  #   'https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth',
+  #   progress=True
+  # )
+  # model_dict = model_ft.state_dict()
+  # # 1. filter out unnecessary keys
+  # pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+  # # 2. overwrite entries in the existing state dict
+  # model_dict.update(pretrained_dict) 
+  # # 3. load the new state dict
+  # model_ft.load_state_dict(model_dict)
 
-  for k,v in model_dict.items():
-    print(k)
+  # for k,v in model_dict.items():
+  #   print(k)
 
   model_ft = model_ft.to(device)
   # model =======================================================================
