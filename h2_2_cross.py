@@ -20,7 +20,7 @@ from tqdm import tqdm
 import pretrainedmodels
 
 plt.ion()   # interactive mode
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 """## 圖像轉換
 ### 題目
@@ -143,7 +143,7 @@ def visualize_model(model, device, dataloaders, class_names, num_images=6):
         img_display = np.transpose(inputs.cpu().data[j].numpy(), (1,2,0)) #numpy:CHW, PIL:HWC
         plt.subplot(num_images//2,2,images_so_far),plt.imshow(img_display) #nrow,ncol,image_idx
         plt.title(f'predicted: {class_names[preds[j]]}')
-        plt.savefig(os.path.join('./logs_cross_resnext_64/' + log_time, 'predict.jpg'))
+        plt.savefig(os.path.join('./logs_cross_resnext_32/' + log_time, 'predict.jpg'))
         if images_so_far == num_images:
             model.train(mode=was_training)
             return
@@ -160,14 +160,14 @@ def imshow(inp, title=None):
 
   plt.imshow(inp)
   # plt.savefig(f"./Normalize1.png")
-  os.mkdir('./logs_cross_resnext_64/'+log_time)
-  plt.savefig(os.path.join('./logs_cross_resnext_64/' + log_time, 'Normalize1.png'))
+  os.mkdir('./logs_cross_resnext_32/'+log_time)
+  plt.savefig(os.path.join('./logs_cross_resnext_32/' + log_time, 'Normalize1.png'))
   # if title is not None:
   #     plt.title(title)
   plt.pause(0.001)  # pause a bit so that plots are updated
 
   plt.imshow(inp1)
-  plt.savefig(os.path.join('./logs_cross_resnext_64/' + log_time, 'non-Normalize.png'))
+  plt.savefig(os.path.join('./logs_cross_resnext_32/' + log_time, 'non-Normalize.png'))
   
   # if title is not None:
   #     plt.title(title)
@@ -256,7 +256,7 @@ def train_model(model, criterion, device, dataloaders, dataset_sizes, optimizer,
   plt.xlabel('epoch')
   plt.ylabel('loss')
   plt.legend()
-  plt.savefig(os.path.join('./logs_cross_resnext_64/', log_time, 'eval_loss.png'))
+  plt.savefig(os.path.join('./logs_cross_resnext_32/', log_time, 'eval_loss.png'))
   
   time_elapsed = time.time() - since
   print('Training complete in {:.0f}m {:.0f}s'.format(
@@ -279,7 +279,7 @@ def train_model(model, criterion, device, dataloaders, dataset_sizes, optimizer,
     "time_elapsed(s)": time_elapsed % 60,
     # "optimizer": type(optimizer),
     "model_name": model_name,
-    "model_name_sub": "resnext101_64x4d"
+    "model_name_sub": "resnext101_32x4d"
     # "#parameters": parameter_count
   }
   print(output_dict)
@@ -300,7 +300,7 @@ def train_model(model, criterion, device, dataloaders, dataset_sizes, optimizer,
 * batch_size: 批次(batch)大小
 """
 model_name = ''
-log_folder = './logs_cross_resnext_64/'
+log_folder = './logs_cross_resnext_32/'
 log_time = ''
 data_dir = ''
 
@@ -317,7 +317,7 @@ def main():
   global lr
 
 #   lr_arr = [0.001, 0.0025, 0.0001]
-  lr_bs_arr = [(0.001, 5),(0.001, 6),(0.001, 9),(0.001, 11),(0.0025, 7),(0.0025, 8),(0.0025, 9),(0.0025, 10),(0.0025, 11),(0.0025, 12),(0.0025, 13)]
+  lr_bs_arr = [(0.001, 5), (0.001, 6), (0.0025, 6), (0.0025, 9), (0.0025, 10)]
   for i in range(2, 6):
     data_dir = '../Cross-validation/Cross-validation-' + str(i)
     print(data_dir)
@@ -371,12 +371,12 @@ def main():
       
       # model_ft = models.googlenet(pretrained=True)
 
-    #   model_ft = pretrainedmodels.__dict__['resnext101_32x4d'](num_classes=1000, pretrained='imagenet')
+      model_ft = pretrainedmodels.__dict__['resnext101_32x4d'](num_classes=1000, pretrained='imagenet')
       # print(model_ft)
 
     #   model_ft = torch.hub.load('facebookresearch/WSL-Images', 'resnext101_32x16d_wsl')
 
-      model_ft = pretrainedmodels.__dict__['resnext101_64x4d'](num_classes=1000, pretrained='imagenet')
+      # model_ft = pretrainedmodels.__dict__['resnext101_64x4d'](num_classes=1000, pretrained='imagenet')
 
       num_ftrs = model_ft.last_linear.in_features
       model_ft.last_linear = nn.Linear(num_ftrs, 219)
