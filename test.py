@@ -1,6 +1,5 @@
 from __future__ import print_function, division
 
-import json
 import time
 import os
 import copy
@@ -12,16 +11,15 @@ from torch.optim import lr_scheduler
 from torch.hub import load_state_dict_from_url
 import torchvision
 from torchvision import datasets, models, transforms
-import torch.utils.data 
 
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-
-import pretrainedmodels
+from efficientnet_pytorch import EfficientNet
+import pandas as pd
 
 plt.ion()   # interactive mode
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 """## 圖像轉換
 ### 題目
@@ -42,12 +40,24 @@ data_transforms = {
                 transforms.RandomRotation(degrees=(0,30)),
             ]),
             transforms.Resize((224,224) ),
+            ########在此區塊填入圖像轉換方法########
+            # transforms.RandomHorizontalFlip(),
+            # transforms.RandomVerticalFlip(),
+            # transforms.Pad(padding = (40, 40, 40, 40), padding_mode="symmetric"),
+            # transforms.RandomRotation((0,30)),
+            # transforms.RandomAdjustSharpness(sharpness_factor=2),
+            # transforms.ColorJitter(brightness=.2, hue=.1),
 
             ########################################
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
         'val': transforms.Compose([
+            transforms.Resize((224,224) ),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ]),
+        'test': transforms.Compose([
             transforms.Resize((224,224) ),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -86,8 +96,10 @@ class MyCNN(nn.Module):
       
       nn.Conv2d(192, 384, kernel_size=3, padding=1),
       nn.ReLU(inplace=True),
+
       nn.Conv2d(384, 256, kernel_size=3, padding=1),
       nn.ReLU(inplace=True),
+
       nn.Conv2d(256, 256, kernel_size=3, padding=1),
       nn.ReLU(inplace=True),
       nn.MaxPool2d(kernel_size=3, stride=2),
@@ -119,11 +131,142 @@ class MyCNN(nn.Module):
 
     return x
 
+class MyCNN2(nn.Module):
+
+  def __init__(self, num_classes=1000):
+    super(MyCNN2, self).__init__()
+    self.features = nn.Sequential(
+      #============== 在此區塊新增或減少隱藏層 =================
+      nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2),
+      nn.ReLU(inplace=True),
+      nn.MaxPool2d(kernel_size=3, stride=2),
+      nn.Conv2d(64, 192, kernel_size=5, padding=2),
+      nn.ReLU(inplace=True),
+      nn.MaxPool2d(kernel_size=3, stride=2),
+      nn.Conv2d(192, 384, kernel_size=3, padding=1),
+      nn.ReLU(inplace=True),
+      nn.Conv2d(384, 256, kernel_size=3, padding=1),
+      nn.ReLU(inplace=True),
+      nn.Conv2d(256, 256, kernel_size=3, padding=1),
+      nn.ReLU(inplace=True),
+      nn.MaxPool2d(kernel_size=3, stride=2),
+      #============================================================
+    )
+    self.features2 = nn.Sequential(
+      #============== 可在此區塊新增隱藏層 =====================
+      nn.Conv2d(256,1024,kernel_size = 3, padding = 1), 
+      nn.ReLU(inplace=True),
+
+      nn.Conv2d(1024,256,kernel_size = 3, padding = 1), 
+      nn.ReLU(inplace=True),
+      nn.MaxPool2d(kernel_size=2),
+      
+      #===========================================================
+    )
+    self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
+    self.classifier = nn.Sequential(
+      #============== 在此區塊新增或減少隱藏層 =================
+      nn.Dropout(),
+      nn.Linear(256 * 6 * 6, 4096),
+      nn.ReLU(inplace=True),
+      nn.Dropout(),
+      nn.Linear(4096, 4096),
+      nn.ReLU(inplace=True),
+      # nn.Linear(4096, num_classes), # 原始模型輸出層
+      #===========================================================
+    )
+    self.classifier2 = nn.Sequential(
+      #============== 可在此區塊新增隱藏層 =====================
+      
+
+
+      #===========================================================
+      nn.Linear(4096, num_classes),
+    )
+
+  def forward(self, x):
+    x = self.features(x)
+    x = self.features2(x)
+
+    x = self.avgpool(x)
+    x = torch.flatten(x, 1)
+
+    x = self.classifier(x)
+    x = self.classifier2(x)
+
+    return x
+
+class MyCNN3(nn.Module):
+
+  def __init__(self, num_classes=1000):
+    super(MyCNN3, self).__init__()
+    self.features = nn.Sequential(
+      #============== 在此區塊新增或減少隱藏層 =================
+      nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2),
+      nn.ReLU(inplace=True),
+      nn.MaxPool2d(kernel_size=3, stride=2),
+      nn.Conv2d(64, 192, kernel_size=5, padding=2),
+      nn.ReLU(inplace=True),
+      nn.MaxPool2d(kernel_size=3, stride=2),
+      nn.Conv2d(192, 384, kernel_size=3, padding=1),
+      nn.ReLU(inplace=True),
+      nn.Conv2d(384, 256, kernel_size=3, padding=1),
+      nn.ReLU(inplace=True),
+      nn.Conv2d(256, 256, kernel_size=3, padding=1),
+      nn.ReLU(inplace=True),
+      nn.MaxPool2d(kernel_size=3, stride=2),
+      #============================================================
+    )
+    self.features2 = nn.Sequential(
+      #============== 可在此區塊新增隱藏層 =====================
+      nn.Conv2d(256,1024,kernel_size = 5, padding = 1), 
+      nn.ReLU(inplace=True),
+
+      nn.Conv2d(1024,256,kernel_size = 3, padding = 1), 
+      nn.ReLU(inplace=True),
+      nn.MaxPool2d(kernel_size=2),
+      
+      #===========================================================
+    )
+    self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
+    self.classifier = nn.Sequential(
+      #============== 在此區塊新增或減少隱藏層 =================
+      nn.BatchNorm1d(256 * 6 * 6,eps=1e-5),
+      nn.Linear(256 * 6 * 6, 4096),
+      nn.BatchNorm1d(4096,eps=1e-5),
+      nn.Linear(4096, 4096),
+      nn.ReLU(inplace=True),
+      #===========================================================
+    )
+    self.classifier2 = nn.Sequential(
+      #============== 可在此區塊新增隱藏層 =====================
+      nn.BatchNorm1d(4096,eps=1e-5),
+      nn.Linear(4096, 4096),
+      nn.ReLU(inplace=True),
+      nn.BatchNorm1d(4096,eps=1e-5),
+      nn.Linear(4096, 4096),
+      nn.ReLU(inplace=True),
+      #===========================================================
+      nn.Linear(4096, num_classes),
+    )
+
+  def forward(self, x):
+    x = self.features(x)
+    x = self.features2(x)
+
+    x = self.avgpool(x)
+    x = torch.flatten(x, 1)
+
+    x = self.classifier(x)
+    x = self.classifier2(x)
+
+    return x
+
 """## 訓練模型區塊
 包含視覺化模型及訓練模型。
 """
 
-def visualize_model(model, device, dataloaders, class_names, num_images=6):
+def visualize_model(model, device, dataloaders, class_names, num_images=6,what='val'):
   was_training = model.training
   model.eval()
   images_so_far = 0
@@ -131,7 +274,7 @@ def visualize_model(model, device, dataloaders, class_names, num_images=6):
   plt.figure(figsize=(18,9))
 
   with torch.no_grad():
-    for i, (inputs, labels) in enumerate(dataloaders['val']):
+    for i, (inputs, labels, path) in enumerate(dataloaders[what]):
       inputs = inputs.to(device)
       labels = labels.to(device)
 
@@ -144,7 +287,7 @@ def visualize_model(model, device, dataloaders, class_names, num_images=6):
         img_display = np.transpose(inputs.cpu().data[j].numpy(), (1,2,0)) #numpy:CHW, PIL:HWC
         plt.subplot(num_images//2,2,images_so_far),plt.imshow(img_display) #nrow,ncol,image_idx
         plt.title(f'predicted: {class_names[preds[j]]}')
-        plt.savefig(os.path.join('./output/' + log_time, 'predict.jpg'))
+        plt.savefig(os.path.join("./"+ what +".png"))
         if images_so_far == num_images:
             model.train(mode=was_training)
             return
@@ -160,26 +303,19 @@ def imshow(inp, title=None):
   inp1 = std * inp + mean
 
   plt.imshow(inp)
-  # plt.savefig(f"./Normalize1.png")
-  os.mkdir('./output/'+log_time)
-  plt.savefig(os.path.join('./output/' + log_time, 'Normalize1.png'))
-  # if title is not None:
-  #     plt.title(title)
-  plt.pause(0.001)  # pause a bit so that plots are updated
 
+  if title is not None:
+      plt.title(title)
+  plt.pause(0.001)  # pause a bit so that plots are updated
   plt.imshow(inp1)
-  plt.savefig(os.path.join('./output/' + log_time, 'non-Normalize.png'))
-  
-  # if title is not None:
-  #     plt.title(title)
+  if title is not None:
+      plt.title(title)
 
 
 def count_parameters(model):
   return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 def train_model(model, criterion, device, dataloaders, dataset_sizes, optimizer, scheduler, num_epochs=25):
-  global model_name 
-  model_name = model.__class__.__name__
   since = time.time()
 
   best_model_wts = copy.deepcopy(model.state_dict())
@@ -202,7 +338,7 @@ def train_model(model, criterion, device, dataloaders, dataset_sizes, optimizer,
       running_corrects = 0
 
       # Iterate over data.
-      for inputs, labels in tqdm(dataloaders[phase]):
+      for inputs, labels, path in tqdm(dataloaders[phase]):
         inputs = inputs.to(device)
         labels = labels.to(device)
 
@@ -223,11 +359,16 @@ def train_model(model, criterion, device, dataloaders, dataset_sizes, optimizer,
         # statistics
         running_loss += loss.item() * inputs.size(0)
         running_corrects += torch.sum(preds == labels.data)
+        # print('preds',preds)
+        # print('labels',labels.data)
+        
       if phase == 'train':
         scheduler.step()
 
       epoch_loss = running_loss / dataset_sizes[phase]
       epoch_acc = running_corrects.double() / dataset_sizes[phase]
+      print('runnint_correct',running_corrects.double())
+      print('dataset size',dataset_sizes[phase])
 
       if phase == 'train':
         train_loss.append(epoch_loss)
@@ -245,215 +386,171 @@ def train_model(model, criterion, device, dataloaders, dataset_sizes, optimizer,
         best_model_wts = copy.deepcopy(model.state_dict())
 
 
-  plt.figure()
+  plt.figure(0)
   plt.plot(range(1,num_epochs+1,1), np.array(train_loss), 'r-', label= "train loss") #relative global step
-  # plt.xlabel('epoch')
-  # plt.ylabel('loss')
-  # plt.legend()
+  plt.xlabel('epoch')
+  plt.ylabel('loss')
+  plt.legend()
   # plt.savefig(f"./train_loss.png")
 
   # plt.figure(1)
   plt.plot(range(1,num_epochs+1,1), np.array(valid_loss), 'b-', label= "eval loss") #--evaluate_during_training True 在啟用eval
-  plt.xlabel('epoch')
-  plt.ylabel('loss')
+  # plt.xlabel('epoch')
+  # plt.ylabel('loss')
   plt.legend()
-  plt.savefig(os.path.join('./output/' + log_time, './eval_loss.png'))
-  
+  plt.savefig(f"./loss.png")
+
   time_elapsed = time.time() - since
   print('Training complete in {:.0f}m {:.0f}s'.format(
     time_elapsed // 60, time_elapsed % 60))
   print('Best val Acc: {:4f}'.format(best_acc))
 
-  print(valid_acc[0].item())
-
-  output_dict = {
-    # "cross_number": int(data_dir[-1]),
-    "num_epochs": num_epochs,
-    "lr": lr,
-    "batch_size": batch_size,
-    "train_loss": (train_loss),
-    "train_acc": (train_acc[0].item()),
-    "valid_loss": (valid_loss),
-    "valid_acc": (valid_acc[0].item()),
-    "best_acc": (best_acc.item()),
-    "time_elapsed(min)": time_elapsed // 60,
-    "time_elapsed(s)": time_elapsed % 60,
-    # "optimizer": type(optimizer),
-    "model_name": model_name,
-    "model_name_sub": "densenet169"
-    # "#parameters": parameter_count
-  }
-  print(output_dict)
-  json_object = json.dumps(output_dict, indent = 4)
-  filename = log_folder + model_name + '_' + log_time + '.json' 
-  print(filename)
-
-  with open(filename, "w") as outfile:
-    outfile.write(json_object)
   # load best model weights
   model.load_state_dict(best_model_wts)
-  torch.save(model.state_dict(),"./output/model.pt")
+  torch.save(model.state_dict(),"./output/best_model_" + '{:4f}'.format(best_acc) + ".pt")
+  
   return model
 
-def test_model(model, device, dataloaders, class_names):
-
-  model.load_state_dict(torch.load('./output/model.pt'))
-  model.eval()
-  print(model)
-  return 
-  # was_training = model.training
-  images_so_far = 0
-
-  # plt.figure(figsize=(18,9))
-
-  with torch.no_grad():
-    for i, (inputs, labels) in enumerate(dataloaders['val']):
-      inputs = inputs.to(device)
-      labels = labels.to(device)
-
-      outputs = model(inputs)
-      _, preds = torch.max(outputs, 1)
-
-      # for j in range(inputs.size()[0]):
-      #   images_so_far += 1
-
-      #   img_display = np.transpose(inputs.cpu().data[j].numpy(), (1,2,0)) #numpy:CHW, PIL:HWC
-      #   plt.subplot(num_images//2,2,images_so_far),plt.imshow(img_display) #nrow,ncol,image_idx
-      #   plt.title(f'predicted: {class_names[preds[j]]}')
-      #   plt.savefig(os.path.join('./output/' + log_time, 'predict.jpg'))
-      #   if images_so_far == num_images:
-      #       model.train(mode=was_training)
-      #       return
-    # model.train(mode=was_training)
-  print(predict)
 """## 訓練參數 (可調整)
 * num_epochs: 訓練回合數
 * lr: 訓練速度(learning rate)
 * batch_size: 批次(batch)大小
 """
-model_name = ''
-log_folder = './output/'
-log_time = ''
-data_dir = ''
 
-num_epochs = 1
-lr = 0.0025
-batch_size = 8
+class ImageFolderWithPaths(datasets.ImageFolder):
+    """Custom dataset that includes image file paths. Extends
+    torchvision.datasets.ImageFolder
+    """
+
+    # override the __getitem__ method. this is the method that dataloader calls
+    def __getitem__(self, index):
+      # this is what ImageFolder normally returns 
+      original_tuple = super(ImageFolderWithPaths, self).__getitem__(index)
+      # the image file path
+      # path = self.imgs[index][0]
+      path = os.path.basename(self.imgs[index][0])
+      # make a new tuple that includes original and the path
+      tuple_with_path = (original_tuple + (path,))
+      # print(tuple_with_path)
+      return tuple_with_path
+
+
+num_epochs = 20
+lr = 0.001
+batch_size = 5
 
 """## 主函式"""
 
 def main():
-  global batch_size 
-  global log_time
-  global data_dir
-  global lr
-
-  # data_dir = '../Cross-validation/Cross-validation-1'
-  data_dir = './training'
-  print(data_dir)
-  
-  log_time = time.strftime("%Y%m%d_%H:%M:%S.%f")[:-3]
-  log_time = log_time + '_bs_' + str(batch_size)
   num_workers = 2
   momentum = 0.9
 
   # 資料集載入 =======================================================================
-  class ExampleDataset(torch.utils.data.Dataset):
-    def __init__(self):
-      self.data = os.listdir('./training/train')
-    
-    def __getitem__(self,idx): # if the index is idx, what will be the data?
-      # path = self.path[idx]
-      # fileName = self.fileName[idx]
-      # preds = self.x_data[idx]
-      # trgts = self.y_data[idx]
-
-      # sample = {
-      #   'predictors' : preds,
-      #   'targets' : trgts,
-      #   'path': path,
-      #   'fileName': fileName
-      # }
-      return self.data[idx]
-      # return sample
-    
-    def __len__(self): # What is the length of the dataset
-      return len(self.data)
-
-  dataset1 = ExampleDataset() # create the dataset
-
-  dataloader = torch.utils.data.DataLoader(
-                        dataset = dataset1, 
-                        shuffle = False, 
-                        batch_size = 1
-               )
-  for datapoint in dataloader:
-    print(datapoint)
-
-  return 
+  data_dir = './training'
+#   data_dir = './Cross-validation/Cross-validation-1'
   image_datasets = {
-    x: datasets.ImageFolder(
+    x: ImageFolderWithPaths(
       os.path.join(data_dir, x),
       data_transforms[x]
     ) 
-    for x in ['train', 'val']
+    for x in ['train', 'val', 'test']
   }
   dataloaders = {
     x: torch.utils.data.DataLoader(
       image_datasets[x], 
       batch_size=batch_size,
-      shuffle=True, 
+      shuffle=False, 
       num_workers=num_workers
     )
-    for x in ['train', 'val']
+    for x in ['train', 'val', 'test']
   }
   dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
   class_names = image_datasets['train'].classes
+  # print('clsss name',class_names)
   # 資料集載入 =======================================================================
 
   # 設定 CUDA 環境 =======================================================================
-  device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+  device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
   print(f"Using device {device}\n")
-
   # 設定 CUDA 環境 =======================================================================
 
 
   # Get a batch of training data
-  inputs, classes = next(iter(dataloaders['train']))
-
+  inputs, classes, path = next(iter(dataloaders['train']))
   # Make a grid from batch
   out = torchvision.utils.make_grid(inputs)
+  torchvision.utils.save_image(out,'./pic.png')
 
   imshow(out, title=[class_names[x] for x in classes])
 
   
   # model =======================================================================
+  # Origin
   # model_ft = MyCNN(num_classes=219)
 
-  
-  # model_ft = models.googlenet(pretrained=True)
+  # Try
+  # model_ft = MyCNN2(num_classes=219)
 
-  # model_ft = pretrainedmodels.__dict__['resnext101_32x4d'](num_classes=1000, pretrained='imagenet')
-  # print(model_ft)
+   # Try2
+  # model_ft = MyCNN3(num_classes=219)
 
-  # model_ft = torch.hub.load('facebookresearch/WSL-Images', 'resnext101_32x16d_wsl')
+  # Resnet101
+  # model_ft = models.resnet101(pretrained=True)
+  # num_ftrs = model_ft.fc.in_features
+  # model_ft.fc = nn.Linear(num_ftrs,219)
 
-  # model_ft = pretrainedmodels.__dict__['se_resnet101'](num_classes=1000, pretrained='imagenet')
+  # wide_resnet101_2
+  # model_ft = models.wide_resnet101_2(pretrained=True)
+  # num_ftrs = model_ft.fc.in_features
+  # model_ft.fc = nn.Linear(num_ftrs,219)
 
-  # num_ftrs = model_ft.last_linear.in_features
-  # model_ft.last_linear = nn.Linear(num_ftrs, 219)
+  # ResNeXt-101 32x8
+  # model_ft = torch.hub.load('facebookresearch/WSL-Images', 'resnext101_32x8d_wsl')
+  # num_ftrs = model_ft.fc.in_features
+  # model_ft.fc = nn.Linear(num_ftrs,219)
 
-  model_ft = torch.hub.load('pytorch/vision:v0.10.0', 'densenet169', pretrained=True)
+  # vgg_19_bn
+  # model_ft = torch.hub.load('pytorch/vision:v0.10.0', 'vgg19_bn', pretrained=True)
+  # num_ftrs = model_ft.classifier[6].in_features
+  # model_ft.classifier[6] = nn.Linear(num_ftrs,219)
+
+  # densenet161
+  model_ft = torch.hub.load('pytorch/vision:v0.10.0', 'densenet161', pretrained=True)
   num_ftrs = model_ft.classifier.in_features
   model_ft.classifier = nn.Linear(num_ftrs,219)
 
-  # num_ftrs = model_ft.fc.in_features
-  # model_ft.fc = nn.Linear(num_ftrs, 219)
 
-  # num_ftrs = model_ft.classifier[2].in_features
-  # model_ft.classifier[3] = nn.Linear(num_ftrs,219)
-  
-  print(model_ft)
+  # TEST
+  # model_ft = models.resnet101(pretrained=True)
+  # model_ft = models.efficientnet_b0(pretrained=True)
+  # model_ft = EfficientNet.from_pretrained('efficientnet-b0')
+
+  #TEST inception v3
+  # model_ft.aux_logits = False 
+  #TEST squeezenet1_0
+  # num_features = model_ft.classifier[1].in_channels
+  # features = list(model_ft.classifier.children())[:-3] # Remove last 3 layers
+  # features.extend([nn.Conv2d(num_features, 219, kernel_size=1)]) # Add
+  # features.extend([nn.ReLU(inplace=True)]) # Add
+  # features.extend([nn.AdaptiveAvgPool2d(output_size=(1,1))]) # Add
+  # model_ft.classifier = nn.Sequential(*features) # Replace the model classifier
+
+  # print(model_ft) 
+
+  # temp = model_ft.classifier[0:2]
+  # model_ft.classifier = temp
+  # print(model_ft.classifier)
+
+  # model_ft.classifier[2] = nn.Dropout(p=0.4)
+  # model_ft.classifier[5] = nn.Dropout(p=0.4)
+  # model_ft.classifier[2] = nn.BatchNorm1d(4096,eps=1e-5)
+  # model_ft.classifier[5] = nn.BatchNorm1d(4096,eps=1e-5)
+
+  # print('hihi',model_ft)
+  # num_ftrs = model_ft.fc.in_features
+  # model_ft.fc = nn.Linear(num_ftrs,219)
+  # print(model_ft)
+
   # pretrained_dict = load_state_dict_from_url(
   #   'https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth',
   #   progress=True
@@ -485,20 +582,53 @@ def main():
   # Decay LR by a factor of 0.1 every 7 epochs
   exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
 
-  # model_ft = train_model(
-  #   model_ft, 
-  #   criterion, 
-  #   device, 
-  #   dataloaders, 
-  #   dataset_sizes, 
-  #   optimizer_ft, 
-  #   exp_lr_scheduler,     
-  #   num_epochs=num_epochs
-  # )
-
+#   model_ft = train_model(
+#     model_ft, 
+#     criterion, 
+#     device, 
+#     dataloaders, 
+#     dataset_sizes, 
+#     optimizer_ft, 
+#     exp_lr_scheduler,     
+#     num_epochs=num_epochs
+#   )
+  test_model(model_ft, device, dataloaders, class_names)
   # visualize_model(model_ft, device, dataloaders, class_names)
 
-  # test_model(model_ft, device, dataloaders, class_names)
+def test_model(model, device, dataloaders, class_names):
+
+  model.load_state_dict(torch.load('./output/best_model_1.000000.pt'))
+  model.eval()
+
+  # was_training = model.training
+  images_so_far = 0
+
+  # plt.figure(figsize=(18,9))
+  filename = []
+  predict_list = []
+
+  with torch.no_grad():
+    for i, (inputs, labels, path) in enumerate(dataloaders['test']):
+      inputs = inputs.to(device)
+      labels = labels.to(device)
+      path = path
+
+      outputs = model(inputs)
+      _, preds = torch.max(outputs, 1)
+      for j in range(inputs.size()[0]):
+        # print(i)
+        print(path[j])
+        print(f"predicted: {class_names[preds[j]]}")
+        filename = np.append(filename, path[j])
+        predict_list = np.append(predict_list, class_names[preds[j]])
+
+  answer = {
+      "filename": filename,
+      "category": predict_list,
+  }
+  df = pd.DataFrame(answer)
+  pd.options.display.float_format = '{:,.0f}'.format
+  df.to_csv('./model_1.000000.csv', encoding="utf-8", index = False) 
 
 if __name__ == '__main__':
     main()
