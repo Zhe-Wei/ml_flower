@@ -294,12 +294,13 @@ def train_model(model, criterion, device, dataloaders, dataset_sizes, optimizer,
   torch.save(model.state_dict(),"./output/model.pt")
   return model
 
-def test_model(device, dataloaders, class_names):
-  model = torch.load(PATH)
-  model.eval()
+def test_model(model, device, dataloaders, class_names):
 
-  # was_training = model.training
+  model.load_state_dict(torch.load('./output/model.pt'))
   model.eval()
+  print(model)
+  return 
+  # was_training = model.training
   images_so_far = 0
 
   # plt.figure(figsize=(18,9))
@@ -323,7 +324,7 @@ def test_model(device, dataloaders, class_names):
       #       model.train(mode=was_training)
       #       return
     # model.train(mode=was_training)
-    print(predict)
+  print(predict)
 """## 訓練參數 (可調整)
 * num_epochs: 訓練回合數
 * lr: 訓練速度(learning rate)
@@ -450,20 +451,20 @@ def main():
   # Decay LR by a factor of 0.1 every 7 epochs
   exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
 
-  model_ft = train_model(
-    model_ft, 
-    criterion, 
-    device, 
-    dataloaders, 
-    dataset_sizes, 
-    optimizer_ft, 
-    exp_lr_scheduler,     
-    num_epochs=num_epochs
-  )
+  # model_ft = train_model(
+  #   model_ft, 
+  #   criterion, 
+  #   device, 
+  #   dataloaders, 
+  #   dataset_sizes, 
+  #   optimizer_ft, 
+  #   exp_lr_scheduler,     
+  #   num_epochs=num_epochs
+  # )
 
-  visualize_model(model_ft, device, dataloaders, class_names)
+  # visualize_model(model_ft, device, dataloaders, class_names)
 
-  # test_model(device, dataloaders, class_names)
+  test_model(model_ft, device, dataloaders, class_names)
 
 if __name__ == '__main__':
     main()

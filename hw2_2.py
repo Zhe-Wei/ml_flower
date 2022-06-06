@@ -143,7 +143,7 @@ def visualize_model(model, device, dataloaders, class_names, num_images=6):
         img_display = np.transpose(inputs.cpu().data[j].numpy(), (1,2,0)) #numpy:CHW, PIL:HWC
         plt.subplot(num_images//2,2,images_so_far),plt.imshow(img_display) #nrow,ncol,image_idx
         plt.title(f'predicted: {class_names[preds[j]]}')
-        plt.savefig(os.path.join('./logs_densenet161/' + log_time, 'predict.jpg'))
+        plt.savefig(os.path.join('./logs_densenet169/' + log_time, 'predict.jpg'))
         if images_so_far == num_images:
             model.train(mode=was_training)
             return
@@ -160,14 +160,14 @@ def imshow(inp, title=None):
 
   plt.imshow(inp)
   # plt.savefig(f"./Normalize1.png")
-  os.mkdir('./logs_densenet161/'+log_time)
-  plt.savefig(os.path.join('./logs_densenet161/' + log_time, 'Normalize1.png'))
+  os.mkdir('./logs_densenet169/'+log_time)
+  plt.savefig(os.path.join('./logs_densenet169/' + log_time, 'Normalize1.png'))
   # if title is not None:
   #     plt.title(title)
   plt.pause(0.001)  # pause a bit so that plots are updated
 
   plt.imshow(inp1)
-  plt.savefig(os.path.join('./logs_densenet161/' + log_time, 'non-Normalize.png'))
+  plt.savefig(os.path.join('./logs_densenet169/' + log_time, 'non-Normalize.png'))
   
   # if title is not None:
   #     plt.title(title)
@@ -256,7 +256,7 @@ def train_model(model, criterion, device, dataloaders, dataset_sizes, optimizer,
   plt.xlabel('epoch')
   plt.ylabel('loss')
   plt.legend()
-  plt.savefig(os.path.join('./logs_densenet161/' + log_time, './eval_loss.png'))
+  plt.savefig(os.path.join('./logs_densenet169/' + log_time, './eval_loss.png'))
   
   time_elapsed = time.time() - since
   print('Training complete in {:.0f}m {:.0f}s'.format(
@@ -279,7 +279,7 @@ def train_model(model, criterion, device, dataloaders, dataset_sizes, optimizer,
     "time_elapsed(s)": time_elapsed % 60,
     # "optimizer": type(optimizer),
     "model_name": model_name,
-    "model_name_sub": "densenet161"
+    "model_name_sub": "densenet169"
     # "#parameters": parameter_count
   }
   print(output_dict)
@@ -300,7 +300,7 @@ def train_model(model, criterion, device, dataloaders, dataset_sizes, optimizer,
 * batch_size: 批次(batch)大小
 """
 model_name = ''
-log_folder = './logs_densenet161/'
+log_folder = './logs_densenet169/'
 log_time = ''
 data_dir = ''
 
@@ -380,7 +380,7 @@ def main():
       # num_ftrs = model_ft.last_linear.in_features
       # model_ft.last_linear = nn.Linear(num_ftrs, 219)
 
-      model_ft = torch.hub.load('pytorch/vision:v0.10.0', 'densenet161', pretrained=True)
+      model_ft = torch.hub.load('pytorch/vision:v0.10.0', 'densenet169', pretrained=True)
       num_ftrs = model_ft.classifier.in_features
       model_ft.classifier = nn.Linear(num_ftrs,219)
 
@@ -437,3 +437,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    

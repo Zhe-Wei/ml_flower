@@ -1,0 +1,18 @@
+{
+    "num_epochs": 1,
+    "lr": 0.0025,
+    "batch_size": 8,
+    "train_loss": [
+        5.022954843126709
+    ],
+    "train_acc": 0.04892367906066536,
+    "valid_loss": [
+        3.2623534485629704
+    ],
+    "valid_acc": 0.2176560121765601,
+    "best_acc": 0.2176560121765601,
+    "time_elapsed(min)": 0.0,
+    "time_elapsed(s)": 14.333639144897461,
+    "model_name": "DenseNet",
+    "model_name_sub": "densenet169"
+}
